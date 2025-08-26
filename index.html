@@ -6,11 +6,26 @@
     <title>Unity WebGL Player | Double Roulette</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+
+    <!-- Rotate overlay styles -->
+    <style>
+      #rotateOverlay {
+        position: fixed; inset: 0;
+        display: none; align-items: center; justify-content: center;
+        background: rgba(0,0,0,.75); color: #fff;
+        z-index: 9999; text-align: center; padding: 24px;
+        font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      #rotateOverlay.show { display: flex; }
+      #rotateOverlay button {
+        margin-top: 12px; padding: 10px 14px; border: 0; border-radius: 8px;
+      }
+    </style>
   </head>
   <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
+    <div id="unity-container" class="unity-desktop" style="display:none">
+      <canvas id="unity-canvas" width=900 height=600 tabindex="-1"></canvas>
+      <div id="unity-loading-bar" style="display:none">
         <div id="unity-logo"></div>
         <div id="unity-progress-bar-empty">
           <div id="unity-progress-bar-full"></div>
@@ -23,8 +38,16 @@
         <div id="unity-build-title">Double Roulette</div>
       </div>
     </div>
-    <script>
 
+    <!-- Portrait overlay -->
+    <div id="rotateOverlay" aria-hidden="true" role="dialog">
+      <div>
+        <p>Rotate your device<br>to play in landscape.</p>
+      </div>
+    </div>
+
+    <script>
+      // --- Keep your original refs
       var container = document.querySelector("#unity-container");
       var canvas = document.querySelector("#unity-canvas");
       var loadingBar = document.querySelector("#unity-loading-bar");
@@ -32,12 +55,6 @@
       var fullscreenButton = document.querySelector("#unity-fullscreen-button");
       var warningBanner = document.querySelector("#unity-warning");
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
       function unityShowBanner(msg, type) {
         function updateBannerVisibility() {
           warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
@@ -56,67 +73,112 @@
         updateBannerVisibility();
       }
 
+      // --- Your build config (unchanged)
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/0.0.6a.loader.js";
+      var loaderUrl = buildUrl + "/0.0.7a.loader.js";
       var config = {
-        dataUrl: buildUrl + "/0.0.6a.data.unityweb",
-        frameworkUrl: buildUrl + "/0.0.6a.framework.js.unityweb",
-        codeUrl: buildUrl + "/0.0.6a.wasm.unityweb",
+        dataUrl: buildUrl + "/0.0.7a.data",
+        frameworkUrl: buildUrl + "/0.0.7a.framework.js",
+        codeUrl: buildUrl + "/0.0.7a.wasm",
         streamingAssetsUrl: "StreamingAssets",
-        companyName: "Anomali Lab",
+        companyName: "DefaultCompany",
         productName: "Double Roulette",
-        productVersion: "0.0.6a",
+        productVersion: "1.0",
         showBanner: unityShowBanner,
       };
 
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
+      // --- Mobile vs desktop classes (unchanged)
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
         container.className = "unity-mobile";
         canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
+        // config.devicePixelRatio = 1; // optional
       } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
-        canvas.style.width = "960px";
+        canvas.style.width = "900px";
         canvas.style.height = "600px";
       }
 
-      loadingBar.style.display = "block";
+      // ===== ORIENTATION GATING =====
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      const startBtn = document.getElementById('startBtn');
+      let unityStarted = false;
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                loadingBar.style.display = "none";
-                fullscreenButton.onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-              }).catch((message) => {
-                alert(message);
-              });
-            };
+      function isLandscape() {
+        // robust check for iOS/Android
+        const mql = window.matchMedia ? window.matchMedia('(orientation: landscape)') : null;
+        return (mql ? mql.matches : false) || window.innerWidth > window.innerHeight;
+      }
 
-      document.body.appendChild(script);
+      async function tryLockLandscape() {
+        // Best-effort: some browsers allow lock only after user gesture + fullscreen
+        try {
+          if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          }
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (e) {
+          // iOS Safari commonly throws; we just fall back to waiting for manual rotate.
+          console.debug('Orientation lock not available:', e);
+        } finally {
+          updateForOrientation();
+        }
+      }
 
+      function updateForOrientation() {
+        const landscape = isLandscape();
+        // Show overlay in portrait; reveal Unity container only in landscape
+        rotateOverlay.classList.toggle('show', !landscape);
+        container.style.display = landscape ? 'block' : 'none';
+
+        // Only start Unity once, and only in landscape
+        if (landscape && !unityStarted) {
+          startUnity();
+        }
+      }
+
+      function startUnity() {
+        unityStarted = true;
+
+        // Now that we are in landscape, show the loading bar and load the engine
+        loadingBar.style.display = "block";
+
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+          createUnityInstance(canvas, config, (progress) => {
+            progressBarFull.style.width = (100 * progress) + "%";
+          }).then((unityInstance) => {
+            loadingBar.style.display = "none";
+            fullscreenButton.onclick = () => { unityInstance.SetFullscreen(1); };
+          }).catch((message) => {
+            alert(message);
+          });
+        };
+        document.body.appendChild(script);
+      }
+
+      // Keep overlay and start logic in sync with device changes
+      window.addEventListener('resize', updateForOrientation);
+      window.addEventListener('orientationchange', updateForOrientation);
+
+      // First user gesture: try to lock to landscape (helps on Android/Chrome)
+      window.addEventListener('pointerdown', () => {
+        if (!unityStarted && !isLandscape()) {
+          tryLockLandscape();
+        }
+      });
+
+      // Button inside the overlay does the same
+      if (startBtn) startBtn.addEventListener('click', tryLockLandscape);
+
+      // Initial sync
+      document.addEventListener('DOMContentLoaded', updateForOrientation);
+      // ===== /ORIENTATION GATING =====
     </script>
   </body>
 </html>
