@@ -75,11 +75,11 @@
 
       // --- Your build config (unchanged)
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/0.0.7a.loader.js";
+      var loaderUrl = buildUrl + "/landscape testing.loader.js";
       var config = {
-        dataUrl: buildUrl + "/0.0.7a.data",
-        frameworkUrl: buildUrl + "/0.0.7a.framework.js",
-        codeUrl: buildUrl + "/0.0.7a.wasm",
+        dataUrl: buildUrl + "/landscape testing.data",
+        frameworkUrl: buildUrl + "/landscape testing.framework.js",
+        codeUrl: buildUrl + "/landscape testing.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "Double Roulette",
@@ -97,8 +97,9 @@
         canvas.className = "unity-mobile";
         // config.devicePixelRatio = 1; // optional
       } else {
-        canvas.style.width = "900px";
-        canvas.style.height = "600px";
+		// Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
+		canvas.style.width = "100%";
+		canvas.style.height = "100%";
       }
 
       // ===== ORIENTATION GATING =====
