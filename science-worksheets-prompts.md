@@ -52,7 +52,7 @@ We should also weave in **science practices**: observing, comparing, sorting, pr
 
 **CD:** To ensure breadth, let's distribute the 100 prompts across domains:
 
-| Domain | # of Prompts | Key Topics |
+| Domain | Number of Prompts | Key Topics |
 |---|---|---|
 | Life Science | 30 | Plants, animals, insects, body, senses, habitats, life cycles, food chains, needs |
 | Earth & Space Science | 25 | Weather, seasons, water cycle, rocks, soil, day/night, sun/moon, Earth care |
@@ -470,7 +470,7 @@ Generate a science worksheet page for 6-year-olds about **Being a Scientist — 
 | Life Science | 30 | Easy: 9, Medium: 14, Challenging: 7 |
 | Earth & Space Science | 25 | Easy: 9, Medium: 12, Challenging: 4 |
 | Physical Science | 25 | Easy: 10, Medium: 11, Challenging: 4 |
-| Engineering & Design | 10 | Easy: 2, Medium: 6, Challenging: 2 |
+| Engineering & Design Thinking | 10 | Easy: 2, Medium: 6, Challenging: 2 |
 | Science Practices | 10 | Easy: 3, Medium: 7, Challenging: 0 |
 | **Total** | **100** | **Easy: 33, Medium: 50, Challenging: 17** |
 
